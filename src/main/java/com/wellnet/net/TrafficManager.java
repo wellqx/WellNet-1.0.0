@@ -26,6 +26,7 @@ public final class TrafficManager {
     private static final AtomicLong IN_BPS = new AtomicLong(-1L);
     private static final AtomicLong OUT_BPS = new AtomicLong(-1L);
     private static final AtomicBoolean DISABLED = new AtomicBoolean(false);
+    private static final ConcurrentHashMap<String, Boolean> REFLECTION_LOGGED = new ConcurrentHashMap();
     private static volatile Object HANDLER_PROXY = null;
     private static volatile Object LAST_CHANNEL = null;
     private static volatile Class<?> CLS_CHANNEL = null;
@@ -155,7 +156,7 @@ public final class TrafficManager {
                     if (handlerProxy == null) {
                         return;
                     }
-                    TrafficManager.invokeTwoArg(pipeline, "addFirst", String.class, Object.class, HANDLER_NAME, handlerProxy);
+                    TrafficManager.invokeTwoArgIfPresent(pipeline, "addFirst", String.class, Object.class, HANDLER_NAME, handlerProxy);
                 }
                 catch (Throwable throwable) {
                     DISABLED.set(true);
@@ -307,7 +308,7 @@ public final class TrafficManager {
                         }
                     }
                     catch (Throwable throwable2) {
-                        // empty catch block
+                        TrafficManager.logReflectionFailureOnce("handlerProxy.fallback." + method.getName(), "Fallback channel operation failed after handler proxy exception", throwable2);
                     }
                     return null;
                 }
@@ -424,13 +425,13 @@ public final class TrafficManager {
                         methodArray[12] = CLS_CHC.getMethod("connect", SocketAddress.class, SocketAddress.class, CLS_CHPROMISE);
                     }
                     catch (NoSuchMethodException noSuchMethodException) {
-                        // empty catch block
+                        TrafficManager.logReflectionFailureOnce("ctx.connect3", "ChannelHandlerContext three-arg connect method is unavailable", noSuchMethodException);
                     }
                     try {
                         methodArray[13] = CLS_CHC.getMethod("connect", SocketAddress.class, CLS_CHPROMISE);
                     }
                     catch (NoSuchMethodException noSuchMethodException) {
-                        // empty catch block
+                        TrafficManager.logReflectionFailureOnce("ctx.connect2", "ChannelHandlerContext two-arg connect method is unavailable", noSuchMethodException);
                     }
                     methodArray[14] = CLS_CHC.getMethod("disconnect", CLS_CHPROMISE);
                     methodArray[15] = CLS_CHC.getMethod("close", CLS_CHPROMISE);
@@ -440,13 +441,14 @@ public final class TrafficManager {
                     methodArray[8] = CLS_CHC.getMethod("write", Object.class);
                 }
                 catch (NoSuchMethodException noSuchMethodException) {
-                    // empty catch block
+                    TrafficManager.logReflectionFailureOnce("ctx.write1", "ChannelHandlerContext single-arg write method is unavailable", noSuchMethodException);
                 }
                 methodArray[9] = CLS_CHC.getMethod("flush", new Class[0]);
                 methodArray[10] = CLS_CHC.getMethod("read", new Class[0]);
             }
             catch (Throwable throwable) {
                 DISABLED.set(true);
+                TrafficManager.logReflectionFailureOnce("ctx.methods.init", "Failed to initialize ChannelHandlerContext methods", throwable);
             }
         }
         CTX_METHODS.put(clazz, methodArray);
@@ -487,7 +489,7 @@ public final class TrafficManager {
                     M_READABLE_BYTES = CLS_BYTEBUF.getMethod("readableBytes", new Class[0]);
                 }
                 catch (Throwable throwable) {
-                    // empty catch block
+                    TrafficManager.logReflectionFailureOnce("bytebuf.class", "Failed to resolve io.netty.buffer.ByteBuf", throwable);
                 }
             }
             if (CLS_BYTEBUF != null && CLS_BYTEBUF.isAssignableFrom(clazz) && M_READABLE_BYTES != null && (object3 = M_READABLE_BYTES.invoke(object, new Object[0])) instanceof Integer) {
@@ -499,7 +501,7 @@ public final class TrafficManager {
                     M_CONTENT = CLS_BYTEBUF_HOLDER.getMethod("content", new Class[0]);
                 }
                 catch (Throwable throwable) {
-                    // empty catch block
+                    TrafficManager.logReflectionFailureOnce("bytebufholder.class", "Failed to resolve io.netty.buffer.ByteBufHolder", throwable);
                 }
             }
             if (CLS_BYTEBUF_HOLDER != null && CLS_BYTEBUF_HOLDER.isAssignableFrom(clazz) && M_CONTENT != null && (object3 = M_CONTENT.invoke(object, new Object[0])) != null && CLS_BYTEBUF != null && CLS_BYTEBUF.isAssignableFrom(object3.getClass()) && M_READABLE_BYTES != null && (object2 = M_READABLE_BYTES.invoke(object3, new Object[0])) instanceof Integer) {
@@ -507,7 +509,7 @@ public final class TrafficManager {
             }
         }
         catch (Throwable throwable) {
-            // empty catch block
+            TrafficManager.logReflectionFailureOnce("message.size." + object.getClass().getName(), "Failed to inspect message size reflectively", throwable);
         }
         return 0L;
     }
@@ -528,16 +530,16 @@ public final class TrafficManager {
                     if (existingHandler == null) {
                         return;
                     }
-                    TrafficManager.invokeOneArg(pipeline, "remove", String.class, HANDLER_NAME);
+                    TrafficManager.invokeOneArgIfPresent(pipeline, "remove", String.class, HANDLER_NAME);
                 }
                 catch (Throwable throwable) {
-                    // empty catch block
+                    TrafficManager.logReflectionFailureOnce("pipeline.remove", "Failed to remove WellNet traffic handler from pipeline", throwable);
                 }
             };
             TrafficManager.submitToEventLoop(eventLoop, runnable);
         }
         catch (Throwable throwable) {
-            // empty catch block
+            TrafficManager.logReflectionFailureOnce("pipeline.uninstall", "Failed to uninstall WellNet traffic handler", throwable);
         }
     }
 
@@ -554,10 +556,12 @@ public final class TrafficManager {
                 return true;
             }
             catch (Throwable throwable) {
+                TrafficManager.logReflectionFailureOnce("eventloop.execute." + object.getClass().getName(), "Failed to submit task via eventLoop.execute", throwable);
                 return false;
             }
         }
         catch (Throwable throwable) {
+            TrafficManager.logReflectionFailureOnce("eventloop.submit." + object.getClass().getName(), "Failed to submit task via eventLoop.submit", throwable);
             return false;
         }
     }
@@ -580,11 +584,12 @@ public final class TrafficManager {
                         method.setAccessible(true);
                         return method.invoke(null, new Object[0]);
                     }
+                    TrafficManager.logReflectionFailureOnce("minecraft.instance.fallback", "No compatible Minecraft singleton accessor was found", noSuchMethodException2);
                 }
             }
         }
         catch (Throwable throwable) {
-            // empty catch block
+            TrafficManager.logReflectionFailureOnce("minecraft.instance", "Failed to resolve Minecraft instance reflectively", throwable);
         }
         return null;
     }
@@ -609,7 +614,7 @@ public final class TrafficManager {
             }
         }
         catch (Throwable throwable) {
-            // empty catch block
+            TrafficManager.logReflectionFailureOnce("client.listener." + object.getClass().getName(), "Failed to resolve ClientPacketListener from Minecraft instance", throwable);
         }
         return null;
     }
@@ -634,7 +639,7 @@ public final class TrafficManager {
             }
         }
         catch (Throwable throwable) {
-            // empty catch block
+            TrafficManager.logReflectionFailureOnce("connection.from.listener." + object.getClass().getName(), "Failed to resolve Connection from listener", throwable);
         }
         return null;
     }
@@ -662,7 +667,7 @@ public final class TrafficManager {
             }
         }
         catch (Throwable throwable) {
-            // empty catch block
+            TrafficManager.logReflectionFailureOnce("channel.from.connection." + object.getClass().getName(), "Failed to resolve Netty channel from connection", throwable);
         }
         return null;
     }
@@ -683,6 +688,7 @@ public final class TrafficManager {
         }
         catch (Throwable throwable) {
             DISABLED.set(true);
+            TrafficManager.logReflectionFailureOnce("netty.class.init", "Failed to resolve required Netty classes", throwable);
         }
     }
 
@@ -698,6 +704,7 @@ public final class TrafficManager {
                 return method.invoke(object, new Object[0]);
             }
             catch (Throwable throwable2) {
+                TrafficManager.logReflectionFailureOnce("invoke0." + object.getClass().getName() + "#" + string, "Failed reflective no-arg invocation for " + string, throwable2);
                 return null;
             }
         }
@@ -715,25 +722,39 @@ public final class TrafficManager {
                 return method.invoke(object, object2);
             }
             catch (Throwable throwable2) {
+                TrafficManager.logReflectionFailureOnce("invoke1." + object.getClass().getName() + "#" + string, "Failed reflective one-arg invocation for " + string, throwable2);
                 return null;
             }
         }
     }
 
-    private static Object invokeTwoArg(Object object, String string, Class<?> clazz, Class<?> clazz2, Object object2, Object object3) {
+    private static boolean invokeOneArgIfPresent(Object object, String string, Class<?> clazz, Object object2) {
+        return TrafficManager.invokeOneArg(object, string, clazz, object2) != null;
+    }
+
+    private static boolean invokeTwoArgIfPresent(Object object, String string, Class<?> clazz, Class<?> clazz2, Object object2, Object object3) {
         try {
             Method method = object.getClass().getMethod(string, clazz, clazz2);
-            return method.invoke(object, object2, object3);
+            method.invoke(object, object2, object3);
+            return true;
         }
         catch (Throwable throwable) {
             try {
                 Method method = object.getClass().getDeclaredMethod(string, clazz, clazz2);
                 method.setAccessible(true);
-                return method.invoke(object, object2, object3);
+                method.invoke(object, object2, object3);
+                return true;
             }
             catch (Throwable throwable2) {
-                return null;
+                TrafficManager.logReflectionFailureOnce("invoke2." + object.getClass().getName() + "#" + string, "Failed reflective two-arg invocation for " + string, throwable2);
+                return false;
             }
+        }
+    }
+
+    private static void logReflectionFailureOnce(String key, String message, Throwable throwable) {
+        if (REFLECTION_LOGGED.putIfAbsent(key, Boolean.TRUE) == null) {
+            LOGGER.debug(message, throwable);
         }
     }
 }

@@ -586,6 +586,7 @@ public final class NetDiagnosticsModule extends WellNetCore.Module {
         }
 
         void clear() {
+            Arrays.fill(this.buffer, 0);
             this.writeIndex = 0;
             this.size = 0;
         }
@@ -629,6 +630,7 @@ public final class NetDiagnosticsModule extends WellNetCore.Module {
         }
 
         void clear() {
+            Arrays.fill(this.buffer, 0L);
             this.writeIndex = 0;
             this.size = 0;
         }
