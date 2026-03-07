@@ -1,0 +1,13 @@
+.gradle/
+.gradle-home/
+.tmp/
+build/
+out/
+run/
+run-data/
+recovered-src/
+jar-extract/
+tools/
+accesstransform.log
+*.log
+*.tmp
