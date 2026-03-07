@@ -23,6 +23,10 @@ Included release files:
 - `wellnet-1.1.0-1.20.1-forge.jar`
 - `wellnet-1.1.0-1.20.1-fabric.jar`
 
+## Wiki
+Player documentation is available in the GitHub Wiki:
+- [WellNet Wiki](https://github.com/wellqx/WellNet/wiki)
+
 ## Build from source
 - `.\gradlew.bat build`
 - `.\gradlew.bat clean build`
