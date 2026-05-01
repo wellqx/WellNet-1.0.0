@@ -1,0 +1,119 @@
+version = mod_version
+group = mod_group_id
+
+def fabricJarName = "${mod_id}-${mod_version}-${targetMinecraftVersion}-fabric.jar"
+
+base {
+    archivesName = targetArchiveName
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion as int)
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${targetMinecraftVersion}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${targetFabricLoaderVersion}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${targetFabricApiVersion}"
+}
+
+def sharedJavaDir = layout.buildDirectory.dir('generated/shared-java')
+def sharedResourceDir = layout.buildDirectory.dir('generated/shared-resources')
+
+tasks.register('syncSharedSources', Sync) {
+    from(rootProject.file('src/main/java')) {
+        exclude 'com/wellnet/WellNetMod.java'
+        exclude 'com/wellnet/WellNetEvents.java'
+        exclude 'com/wellnet/client/WellNetClient.java'
+        exclude 'com/wellnet/client/WellNetClientCommands.java'
+        exclude 'com/wellnet/config/WellNetConfig.java'
+    }
+    into(sharedJavaDir)
+}
+
+tasks.register('syncSharedResources', Sync) {
+    from(rootProject.file('src/main/resources')) {
+        include 'assets/**'
+    }
+    into(sharedResourceDir)
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = [rootProject.file('fabric/src/main/java'), sharedJavaDir]
+        }
+        resources {
+            srcDirs = [rootProject.file('fabric/src/main/resources'), sharedResourceDir]
+        }
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    dependsOn tasks.named('syncSharedResources')
+
+    def replaceProperties = [
+        mod_id: mod_id,
+        mod_name: mod_name,
+        mod_version: mod_version,
+        mod_authors: mod_authors,
+        mod_description: mod_description,
+        minecraft_version: targetMinecraftVersion,
+        fabric_loader_version: targetFabricLoaderVersion,
+        pack_format: targetPackFormat
+    ]
+
+    inputs.properties replaceProperties
+    filesMatching(['fabric.mod.json', 'pack.mcmeta']) {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    dependsOn tasks.named('syncSharedSources')
+    options.encoding = 'UTF-8'
+    options.release = targetJavaVersion as int
+}
+
+jar {
+    manifest {
+        attributes([
+            'Manifest-Version': '1.0',
+            'Implementation-Title': mod_name + ' (Fabric)',
+            'Implementation-Version': mod_version,
+            'Implementation-Vendor': mod_authors,
+            'Created-By': 'WellNet'
+        ])
+    }
+}
+
+tasks.matching { it.name == 'sourcesJar' }.configureEach {
+    enabled = false
+}
+
+tasks.matching { it.name == 'remapSourcesJar' }.configureEach {
+    enabled = false
+}
+
+tasks.named('remapJar') {
+    archiveFileName = fabricJarName
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact tasks.remapJar
+        }
+    }
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('repo')
+        }
+    }
+}

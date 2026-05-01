@@ -1,0 +1,16 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '6.0.46'
+}
+
+ext.targetMinecraftVersion = '1.20.4'
+ext.targetMinecraftVersionRange = '[1.20.4,1.20.5)'
+ext.targetForgeVersion = '49.2.7'
+ext.targetForgeVersionRange = '[49,)'
+ext.targetLoaderVersionRange = '[49,)'
+ext.targetMappingVersion = '1.20.4'
+ext.targetPackFormat = 22
+
+apply from: rootProject.file('gradle/forge-target.gradle')

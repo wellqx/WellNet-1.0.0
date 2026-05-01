@@ -1,0 +1,13 @@
+plugins {
+    id 'fabric-loom' version '1.6-SNAPSHOT'
+    id 'maven-publish'
+}
+
+ext.targetMinecraftVersion = '1.20.4'
+ext.targetFabricLoaderVersion = '0.16.10'
+ext.targetFabricApiVersion = '0.97.3+1.20.4'
+ext.targetPackFormat = 22
+ext.targetJavaVersion = 17
+ext.targetArchiveName = 'wellnet-1.20.4-fabric'
+
+apply from: rootProject.file('gradle/fabric-target.gradle')

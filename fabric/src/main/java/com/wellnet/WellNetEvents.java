@@ -171,7 +171,7 @@ public final class WellNetEvents {
         try {
             IntegratedServer integratedServer = minecraft.getSingleplayerServer();
             if (integratedServer != null) {
-                return new ServerSample(integratedServer.getAverageTickTime() > 0.0f, "integrated");
+                return new ServerSample(true, "integrated");
             }
         } catch (Throwable throwable) {
             LOGGER.debug("Failed to resolve integrated-server state", throwable);

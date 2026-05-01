@@ -3,8 +3,8 @@
 WellNet is a client-side Minecraft mod focused on smoother play in heavy modpacks, calmer world joins, and more stable local hosting.
 
 ## Current project line
-- Mod version: `1.1.0`
-- Minecraft version: `1.20.1`
+- Mod version: `1.2.0`
+- Minecraft versions: `1.19.2`, `1.20.1`, `1.20.4`
 - Loaders in source tree:
   - `Forge`
   - `Fabric`
@@ -22,6 +22,12 @@ Included release files:
 - `wellnet-1.0.0-1.20.1-forge.jar`
 - `wellnet-1.1.0-1.20.1-forge.jar`
 - `wellnet-1.1.0-1.20.1-fabric.jar`
+- `wellnet-1.2.0-1.19.2-forge.jar`
+- `wellnet-1.2.0-1.19.2-fabric.jar`
+- `wellnet-1.2.0-1.20.1-forge.jar`
+- `wellnet-1.2.0-1.20.1-fabric.jar`
+- `wellnet-1.2.0-1.20.4-forge.jar`
+- `wellnet-1.2.0-1.20.4-fabric.jar`
 
 ## Wiki
 Player documentation is available in the GitHub Wiki:
@@ -34,6 +40,8 @@ Player documentation is available in the GitHub Wiki:
 ## Project structure
 - `src/` - shared source and Forge entrypoints
 - `fabric/` - Fabric loader project
+- `forge-1.19.2/`, `forge-1.20.4/` - version-specific Forge targets
+- `fabric-1.19.2/`, `fabric-1.20.4/` - version-specific Fabric targets
 - `releases/` - ready-to-use published mod jars
 
 ## License

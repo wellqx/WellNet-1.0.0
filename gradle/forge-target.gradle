@@ -1,22 +1,16 @@
-plugins {
-    id 'eclipse'
-    id 'idea'
-    id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '6.0.46'
-}
-
 version = mod_version
 group = mod_group_id
-def forgeJarName = "${mod_id}-${mod_version}-${minecraft_version}-forge.jar"
+
+def forgeJarName = "${mod_id}-${mod_version}-${targetMinecraftVersion}-forge.jar"
 
 base {
-    archivesName = mod_id
+    archivesName = "${mod_id}-${targetMinecraftVersion}-forge"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
-    mappings channel: mapping_channel, version: mapping_version
+    mappings channel: mapping_channel, version: targetMappingVersion
     copyIdeResources = true
 
     runs {
@@ -46,12 +40,21 @@ minecraft {
 
         data {
             workingDirectory project.file('run-data')
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', rootProject.file('src/main/resources/')
         }
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+sourceSets {
+    main {
+        java {
+            srcDirs = [rootProject.file('src/main/java')]
+        }
+        resources {
+            srcDirs = [rootProject.file('src/main/resources'), file('src/generated/resources')]
+        }
+    }
+}
 
 repositories {
     maven { url = 'https://maven.minecraftforge.net' }
@@ -59,23 +62,23 @@ repositories {
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    minecraft "net.minecraftforge:forge:${targetMinecraftVersion}-${targetForgeVersion}"
 }
 
 tasks.named('processResources', ProcessResources).configure {
     def replaceProperties = [
-        minecraft_version: minecraft_version,
-        minecraft_version_range: minecraft_version_range,
-        forge_version: forge_version,
-        forge_version_range: forge_version_range,
-        loader_version_range: loader_version_range,
+        minecraft_version: targetMinecraftVersion,
+        minecraft_version_range: targetMinecraftVersionRange,
+        forge_version: targetForgeVersion,
+        forge_version_range: targetForgeVersionRange,
+        loader_version_range: targetLoaderVersionRange,
         mod_id: mod_id,
         mod_name: mod_name,
         mod_license: mod_license,
         mod_version: mod_version,
         mod_authors: mod_authors,
         mod_description: mod_description,
-        pack_format: pack_format
+        pack_format: targetPackFormat
     ]
 
     inputs.properties replaceProperties

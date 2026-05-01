@@ -61,7 +61,7 @@ public final class WellNetConfig {
     }
 
     public static int renderDistanceMax() {
-        return Math.max(32, Math.max(rawRenderDistanceMin(), rawRenderDistanceMax()));
+        return Math.max(rawRenderDistanceMin(), rawRenderDistanceMax());
     }
 
     public static long renderDistanceCooldownMs() {

@@ -80,10 +80,26 @@ public final class WellNetGuideRepository {
             return "en_us";
         }
         try {
-            String selected = minecraft.getLanguageManager().getSelected();
-            return selected == null || selected.isBlank() ? "en_us" : selected.toLowerCase();
+            Object selected = minecraft.getLanguageManager().getSelected();
+            String languageCode = languageCodeFromSelected(selected);
+            return languageCode.isBlank() ? "en_us" : languageCode.toLowerCase();
         } catch (Throwable throwable) {
             return "en_us";
+        }
+    }
+
+    private static String languageCodeFromSelected(Object selected) {
+        if (selected == null) {
+            return "";
+        }
+        if (selected instanceof CharSequence sequence) {
+            return sequence.toString();
+        }
+        try {
+            Object code = selected.getClass().getMethod("getCode").invoke(selected);
+            return code instanceof CharSequence sequence ? sequence.toString() : "";
+        } catch (ReflectiveOperationException ignored) {
+            return "";
         }
     }
 

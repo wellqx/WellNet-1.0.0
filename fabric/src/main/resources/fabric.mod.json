@@ -7,7 +7,7 @@
   "authors": [
     "${mod_authors}"
   ],
-  "license": "All rights reserved",
+  "license": "MIT",
   "environment": "client",
   "entrypoints": {
     "client": [
