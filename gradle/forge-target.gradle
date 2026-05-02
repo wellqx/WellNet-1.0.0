@@ -11,6 +11,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
     mappings channel: mapping_channel, version: targetMappingVersion
+    copyIdeResources = true
+
     runs {
         configureEach {
             workingDirectory project.file('run')
@@ -56,6 +58,9 @@ sourceSets {
 
 if (targetForgeVersion.startsWith('49.')) {
     sourceSets.main.output.resourcesDir = sourceSets.main.java.classesDirectory.get().asFile
+    tasks.named('compileJava').configure {
+        dependsOn tasks.named('processResources')
+    }
 }
 
 repositories {

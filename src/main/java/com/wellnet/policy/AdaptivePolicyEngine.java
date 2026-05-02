@@ -13,6 +13,7 @@ public final class AdaptivePolicyEngine {
     private static final int HOST_FALLBACK_RECOVERY_SCORE_MIN = 60;
     private static final int HOST_FALLBACK_SHORT_SCORE_MIN = 55;
     private static final int HOST_FALLBACK_RECOVERY_SPIKE_MAX_PCT = 10;
+    private static final int FALLBACK_DEGRADE_SCORE_MAX = 44;
 
     private final PressureAnalyzer pressureAnalyzer = new PressureAnalyzer();
     private final TrafficPhaseProfiler trafficPhaseProfiler = new TrafficPhaseProfiler();
@@ -224,6 +225,10 @@ public final class AdaptivePolicyEngine {
         if ((burstGuardActive || hostSafeguardActive) && currentRenderDistance <= hardCap) {
             return AdaptivePolicyDecision.none();
         }
+        if (isSoftFallbackWindow(context, pressure, burstGuardActive, hostSafeguardActive, decisionScore)) {
+            state.clearBadTicks();
+            return AdaptivePolicyDecision.none();
+        }
 
         int stepDown = shouldUseAggressiveStepDown(state, pressure, burstGuardActive, trendSnapshot) ? 2 : 1;
         int lowerBound = context.config().minRenderDistance();
@@ -356,6 +361,28 @@ public final class AdaptivePolicyEngine {
             || pressure.severeFramePressure()
             || pressure.severeBurst()
             || pressure.trafficPressure());
+    }
+
+    private boolean isSoftFallbackWindow(
+        AdaptivePolicyContext context,
+        PressureSnapshot pressure,
+        boolean burstGuardActive,
+        boolean hostSafeguardActive,
+        int decisionScore
+    ) {
+        if (burstGuardActive || hostSafeguardActive || decisionScore <= FALLBACK_DEGRADE_SCORE_MAX) {
+            return false;
+        }
+        if (context.shortStats() == null || context.mediumStats() == null) {
+            return false;
+        }
+        boolean missingPingMetrics = context.shortStats().avgPingMillis() < 0L
+            && context.mediumStats().avgPingMillis() < 0L;
+        return missingPingMetrics
+            && !pressure.framePressure()
+            && !pressure.trafficPressure()
+            && !pressure.spikePressure()
+            && !pressure.severeBurst();
     }
 
     private boolean shouldUseAggressiveStepDown(
