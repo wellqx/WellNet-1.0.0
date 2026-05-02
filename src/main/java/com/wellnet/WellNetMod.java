@@ -5,12 +5,12 @@ import com.wellnet.config.WellNetConfig;
 import com.wellnet.core.NetDiagnosticsModule;
 import com.wellnet.core.WellNetCore;
 import com.wellnet.net.ClientPingSource;
-import java.io.Serializable;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,10 +35,9 @@ public final class WellNetMod {
         LOGGER.info("WellNet common setup starting.");
         this.core = new WellNetCore();
 
-        NetDiagnosticsModule.Source source = DistExecutor.safeRunForDist(
-            () -> ClientPingSource::new,
-            () -> (DistExecutor.SafeSupplier<NetDiagnosticsModule.Source> & Serializable) WellNetMod::disabledSource
-        );
+        NetDiagnosticsModule.Source source = FMLEnvironment.dist == Dist.CLIENT
+            ? new ClientPingSource()
+            : WellNetMod.disabledSource();
         NetDiagnosticsModule netDiagnosticsModule = new NetDiagnosticsModule(this.core, source, 1000L);
         AdaptiveClientSettingsModule adaptiveClientModule = new AdaptiveClientSettingsModule(this.core, netDiagnosticsModule);
 
